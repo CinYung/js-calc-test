@@ -15,6 +15,29 @@ const baseCalc = require('./base_calc');
 const decimal = require('decimal.js');
 decimal.set({precision: 50, defaults: true});
 
+const roundTestData = [
+    {num: 0.3275, digit: 3, rst: '0.328'},
+    {num: 34548.7459845, digit: 6, rst: '34548.745985'},
+    {num: 25423543.74695, digit: 4, rst: '25423543.747'},
+];
+const addTestData = [
+    {num1: 0.1, num2: 0.2, rst: '0.3', digit: 4, roundRst: '0.3'},
+    {num1: 43223423.23423, num2: -423423, rst: '42800000.23423', digit: 2, roundRst: '42800000.23'},
+];
+const subTestData = [
+    {num1: 1, num2: 0.1, rst: '0.9', digit: 4, roundRst: '0.9'},
+    {num1: 43223423.23423, num2: 423423, rst: '42800000.23423', digit: 2, roundRst: '42800000.23'},
+];
+const mulTestData = [
+    {num1: 45855.84187, num2: 590.21845, rst: '27064963.9119565015', digit: 6, roundRst: '27064963.911957'},
+    {num1: 45855.84187, num2: 590.218453, rst: '27064964.04952402711', digit: 6, roundRst: '27064964.049524'},
+    {num1: 61396.99409, num2: 649.26066, rst: '39862652.9048894994', digit: 6, roundRst: '39862652.904889'},
+    {num1: 187.8875, num2: 183.87996, rst: '34548.7459845', digit: 6, roundRst: '34548.745985'},
+];
+const divTestData = [
+    {num1: 1, num2: 0.2, rst: '5', digit: 2, roundRst: '5'},
+]
+
 const testRound = function (num, digit, rst) {
     const error = [];
     var result = np.round(num, digit);
@@ -39,6 +62,84 @@ const testRound = function (num, digit, rst) {
     }
 };
 
+const getErrorHint = function(hint, calcType, rst, roundRst, calcRst, calcRoundRst) {
+    if (calcRst != rst) {
+        if (calcRoundRst != roundRst) {
+            hint.push(calcType + ': ' + calcRst + ' ' + calcType + '.round: ' + calcRoundRst);
+        } else {
+            hint.push(calcType + ': ' + calcRst);
+        }
+    } else if (calcRoundRst != roundRst) {
+        hint.push(calcType + '.round: ' + calcRoundRst);
+    }
+};
+
+/**
+ * 测试加法
+ * @param num1
+ * @param num2
+ * @param rst
+ * @param digit
+ * @param roundRst
+ */
+const testAdd = function (num1, num2, rst, digit, roundRst) {
+    const error = [];
+    var result = np.plus(num1, num2), roundResult = np.round(result, digit);
+    getErrorHint(error, 'np', rst, roundRst, result, roundResult);
+
+    result = accCalc.accAdd(num1, num2);
+    roundResult = Number(accCalc.roundnum(result, digit));
+    getErrorHint(error, 'accCalc', rst, roundRst, result, roundResult);
+
+    result = baseCalc.add(num1, num2);
+    roundResult = baseCalc.round(result, digit);
+    getErrorHint(error, 'baseCalc', rst, roundRst, result, roundResult);
+
+    var dRst = decimal.add(num1, num2);
+    result = dRst.toNumber();
+    roundResult = dRst.toDecimalPlaces(digit).toNumber();
+    getErrorHint(error, 'decimal', rst, roundRst, result, roundResult);
+
+    if (error.length > 0) {
+        console.log('Number: ' + num1 + ' ' + num2 + '; Answer: ' + rst + '; Digit: ' + digit + '; RoundAnswer: ' + roundRst);
+        console.log('error: ');
+        console.log(error);
+    }
+};
+
+/**
+ * 测试减法
+ * @param num1
+ * @param num2
+ * @param rst
+ * @param digit
+ * @param roundRst
+ */
+const testSub = function (num1, num2, rst, digit, roundRst) {
+    const error = [];
+    var result = np.minus(num1, num2), roundResult = np.round(result, digit);
+    getErrorHint(error, 'np', rst, roundRst, result, roundResult);
+
+    result = accCalc.accSub(num2, num1);
+    roundResult = Number(accCalc.roundnum(result, digit));
+    getErrorHint(error, 'accCalc', rst, roundRst, result, roundResult);
+
+    result = baseCalc.sub(num1, num2);
+    roundResult = baseCalc.round(result, digit);
+    getErrorHint(error, 'baseCalc', rst, roundRst, result, roundResult);
+
+    var dRst = decimal.sub(num1, num2);
+    result = dRst.toNumber();
+    roundResult = dRst.toDecimalPlaces(digit).toNumber();
+    getErrorHint(error, 'decimal', rst, roundRst, result, roundResult);
+
+    if (error.length > 0) {
+        console.log('Number: ' + num1 + ' ' + num2 + '; Answer: ' + rst + '; Digit: ' + digit + '; RoundAnswer: ' + roundRst);
+        console.log('error: ');
+        console.log(error);
+    }
+};
+
 /**
  * 测试乘法
  * @param {Number}num1
@@ -46,54 +147,59 @@ const testRound = function (num, digit, rst) {
  * @param {String}rst
  * @param {String}roundRst
  */
-const testMul = function (num1, num2, rst, roundRst) {
+const testMul = function (num1, num2, rst, digit, roundRst) {
     const error = [];
-    var result = np.times(num1, num2), roundResult = np.round(result, 6);
-    if (result != rst) {
-        if (roundResult != roundRst) {
-            error.push('np: ' + result + ' np.round(6): ' + roundResult);
-        } else {
-            error.push('np: ' + result);
-        }
-    } else if (roundResult != roundRst) {
-        error.push('np.round(6): ' + roundResult);
-    }
+    var result = np.times(num1, num2), roundResult = np.round(result, digit);
+    getErrorHint(error, 'np', rst, roundRst, result, roundResult);
+
     result = accCalc.accMul(num1, num2);
-    roundResult = Number(accCalc.roundnum(result, 6));
-    if (result != rst) {
-        if (roundResult != roundRst) {
-            error.push('accCalc: ' + result + ' accCalc.round(6): ' + roundResult);
-        } else {
-            error.push('accCalc: ' + result);
-        }
-    } else if (roundResult != roundRst) {
-        error.push('accCalc.round(6): ' + roundResult);
-    }
+    roundResult = Number(accCalc.roundnum(result, digit));
+    getErrorHint(error, 'accCalc', rst, roundRst, result, roundResult);
+
     result = baseCalc.mul(num1, num2);
-    roundResult = baseCalc.round(result, 6);
-    if (result != rst) {
-        if (roundResult != roundRst) {
-            error.push('baseCalc: ' + result + ' baseCalc.round(6): ' + roundResult);
-        } else {
-            error.push('baseCalc: ' + result);
-        }
-    } else if (roundResult != roundRst) {
-        error.push('baseCalc.round(6): ' + roundResult);
-    }
-    var dRst = decimal.mul(num1, num2)
+    roundResult = baseCalc.round(result, digit);
+    getErrorHint(error, 'baseCalc', rst, roundRst, result, roundResult);
+
+    var dRst = decimal.mul(num1, num2);
     result = dRst.toNumber();
-    roundResult = dRst.toDecimalPlaces(6).toNumber();
-    if (result != rst) {
-        if (roundResult != roundRst) {
-            error.push('decimal: ' + result + ' decimal.round(6): ' + roundResult);
-        } else {
-            error.push('decimal: ' + result);
-        }
-    } else if (roundResult != roundRst) {
-        error.push('decimal.round(6): ' + roundResult);
-    }
+    roundResult = dRst.toDecimalPlaces(digit).toNumber();
+    getErrorHint(error, 'decimal', rst, roundRst, result, roundResult);
+
     if (error.length > 0) {
-        console.log('Number: ' + num1 + ' ' + num2 + ' Answer: ' + rst + '; RoundTo(6): ' + roundRst);
+        console.log('Number: ' + num1 + ' ' + num2 + '; Answer: ' + rst + '; Digit: ' + digit + '; RoundAnswer: ' + roundRst);
+        console.log('error: ');
+        console.log(error);
+    }
+};
+
+/**
+ * 测试除法
+ * @param num1
+ * @param num2
+ * @param rst
+ * @param digit
+ * @param roundRst
+ */
+const testDiv = function (num1, num2, rst, digit, roundRst) {
+    const error = [];
+    var result = np.divide(num1, num2), roundResult = np.round(result, digit);
+    getErrorHint(error, 'np', rst, roundRst, result, roundResult);
+
+    result = accCalc.accDiv(num1, num2);
+    roundResult = Number(accCalc.roundnum(result, digit));
+    getErrorHint(error, 'accCalc', rst, roundRst, result, roundResult);
+
+    result = baseCalc.div(num1, num2);
+    roundResult = baseCalc.round(result, digit);
+    getErrorHint(error, 'baseCalc', rst, roundRst, result, roundResult);
+
+    var dRst = decimal.div(num1, num2);
+    result = dRst.toNumber();
+    roundResult = dRst.toDecimalPlaces(digit).toNumber();
+    getErrorHint(error, 'decimal', rst, roundRst, result, roundResult);
+
+    if (error.length > 0) {
+        console.log('Number: ' + num1 + ' ' + num2 + '; Answer: ' + rst + '; Digit: ' + digit + '; RoundAnswer: ' + roundRst);
         console.log('error: ');
         console.log(error);
     }
@@ -106,14 +212,31 @@ const beginTest = function (hint, fun) {
 };
 
 beginTest('Test Round: ', function () {
-    testRound(0.3275, 3, '0.328');
-    testRound(34548.7459845, 6, '34548.745985');
-    testRound(25423543.74695, 4, '25423543.747');
+    for (const d of roundTestData) {
+        testRound(d.num, d.digit, d.rst);
+    }
+});
+
+beginTest('Test Add: ', function () {
+    for (const d of addTestData) {
+        testAdd(d.num1, d.num2, d.rst, d.digit, d.roundRst);
+    }
+});
+
+beginTest('Test Substract: ', function () {
+    for (const d of subTestData) {
+        testSub(d.num1, d.num2, d.rst, d.digit, d.roundRst);
+    }
 });
 
 beginTest('Test Multiply: ', function () {
-    testMul(45855.84187, 590.21845, '27064963.9119565015', '27064963.911957');
-    testMul(45855.84187, 590.218453, '27064964.04952402711', '27064964.049524');
-    testMul(61396.99409, 649.26066, '39862652.9048894994', '39862652.904889');
-    testMul(187.8875, 183.87996, '34548.7459845', '34548.745985');
+    for (const d of mulTestData) {
+        testMul(d.num1, d.num2, d.rst, d.digit, d.roundRst);
+    }
+});
+
+beginTest('Test Divide: ', function () {
+    for (const d of divTestData) {
+        testDiv(d.num1, d.num2, d.rst, d.digit, d.roundRst);
+    }
 });
